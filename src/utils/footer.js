@@ -41,7 +41,7 @@ export const setFooter = function (data) {
                     const colAlign = obj.options.columns[i].align || obj.options.defaultColAlign || 'center';
                     td.style.textAlign = colAlign;
                 }
-                td.textContent = parseValue.call(obj, +obj.records.length + i, j, obj.options.footers[j][i]);
+                td.textContent = parseValue.call(obj, i, obj.options.data.length + j, obj.options.footers[j][i]);
 
                 // Hide/Show with hideColumn()/showColumn()
                 td.style.display = obj.cols[i].colElement.style.display;
