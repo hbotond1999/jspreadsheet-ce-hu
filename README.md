@@ -23,23 +23,25 @@ import jspreadsheet from '@botond.hegedus/jspreadsheet-ce';
 import '@botond.hegedus/jspreadsheet-ce/dist/jspreadsheet.css';
 
 jspreadsheet(document.getElementById('spreadsheet'), {
-    worksheets: [{
-        data: [
-            ['Jazz', 'Honda', '2019-02-12'],
-            ['Civic', 'Honda', '2018-07-11'],
-        ],
-        columns: [
-            { type: 'text', title: 'Car', width: 120 },
-            { type: 'dropdown', title: 'Make', width: 200 },
-            { type: 'calendar', title: 'Available', width: 200 },
-        ],
-    }],
+    worksheets: [
+        {
+            data: [
+                ['Jazz', 'Honda', '2019-02-12'],
+                ['Civic', 'Honda', '2018-07-11'],
+            ],
+            columns: [
+                { type: 'text', title: 'Car', width: 120 },
+                { type: 'dropdown', title: 'Make', width: 200 },
+                { type: 'calendar', title: 'Available', width: 200 },
+            ],
+        },
+    ],
 });
 ```
 
 ## Módosítások az eredeti verzióhoz képest
 
-- Custom változtatások és fejlesztések
+-   Custom változtatások és fejlesztések
 
 ## Licenc
 
@@ -47,7 +49,6 @@ MIT License - Lásd a [LICENSE](LICENSE) fájlt.
 
 ## Eredeti projekt linkjei
 
-- [Eredeti GitHub Repository](https://github.com/jspreadsheet/ce)
-- [Jspreadsheet Dokumentáció](https://bossanova.uk/jspreadsheet/)
-- [Jspreadsheet Pro](https://jspreadsheet.com/)
-
+-   [Eredeti GitHub Repository](https://github.com/jspreadsheet/ce)
+-   [Jspreadsheet Dokumentáció](https://bossanova.uk/jspreadsheet/)
+-   [Jspreadsheet Pro](https://jspreadsheet.com/)

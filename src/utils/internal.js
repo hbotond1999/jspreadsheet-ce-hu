@@ -181,7 +181,7 @@ export const executeFormula = function (expression, x, y) {
         if (!isFooterCell && tokens && tokens.indexOf(parentId) > -1) {
             console.error('Self Reference detected');
             return '#ERROR';
-        }else {
+        } else {
             // Expressions to be used in the parsing
             const formulaExpressions = {};
 
