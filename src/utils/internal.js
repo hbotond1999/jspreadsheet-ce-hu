@@ -177,10 +177,11 @@ export const executeFormula = function (expression, x, y) {
         tokens = expression.match(/([A-Z]+[0-9]+)/g);
 
         // Direct self-reference protection
-        if (tokens && tokens.indexOf(parentId) > -1) {
+        const isFooterCell = y >= obj.options.data.length;
+        if (!isFooterCell && tokens && tokens.indexOf(parentId) > -1) {
             console.error('Self Reference detected');
             return '#ERROR';
-        } else {
+        }else {
             // Expressions to be used in the parsing
             const formulaExpressions = {};
 
