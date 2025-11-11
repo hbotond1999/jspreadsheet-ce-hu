@@ -80,7 +80,7 @@
     },
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
-    "version": "5.0.4",
+    "version": "5.0.5",
     "bugs": "https://github.com/hbotond1999/jspreadsheet-ce-hu/issues",
     "homepage": "https://github.com/hbotond1999/jspreadsheet-ce-hu",
     "download": "https://github.com/jspreadsheet/ce/archive/master.zip",
