@@ -1,13 +1,13 @@
 {
-    "name": "jspreadsheet-ce",
+    "name": "@botond.hegedus/jspreadsheet-ce",
     "title": "The Javascript Spreadsheet",
     "description": "Jspreadsheet is a lightweight, vanilla javascript plugin to create amazing web-based interactive data grids with spreadsheet like controls compatible with Excel, Google Spreadsheets and any other spreadsheet software.",
     "repository": {
         "type": "git",
-        "url": "https://github.com/jspreadsheet/ce.git"
+        "url": "https://github.com/hbotond1999/jspreadsheet-ce-hu.git"
     },
     "author": {
-        "name": "Contact <contact@jspreadsheet.com>"
+        "name": "Botond Hegedüs"
     },
     "keywords": [
         "spreadsheet",
@@ -81,8 +81,8 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "version": "5.0.4",
-    "bugs": "https://github.com/jspreadsheet/ce/issues",
-    "homepage": "https://github.com/jspreadsheet/ce",
+    "bugs": "https://github.com/hbotond1999/jspreadsheet-ce-hu/issues",
+    "homepage": "https://github.com/hbotond1999/jspreadsheet-ce-hu",
     "download": "https://github.com/jspreadsheet/ce/archive/master.zip",
     "scripts": {
         "format": "npm run prettier:fix && npm run lint:fix",
@@ -93,6 +93,15 @@
         "start": "webpack serve --history-api-fallback",
         "prebuild": "npm run prettier:fix && npm run lint:fix",
         "build": "cross-env NODE_ENV=production webpack --config webpack.config.js",
-        "test": "npm run build && mocha --recursive --require=mocha.config.js"
-    }
+        "test": "npm run build && mocha --recursive --require=mocha.config.js",
+        "prepublishOnly": "npm run build && npm test"
+    },
+    "publishConfig": {
+        "access": "public"
+    },
+    "files": [
+        "dist",
+        "LICENSE",
+        "README.md"
+    ]
 }
