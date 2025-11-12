@@ -110,7 +110,7 @@ const parseNumber = function (value, columnNumber) {
  */
 export const executeFormula = function (expression, x, y) {
     const obj = this;
-
+    console.log("executeFormula", expression, x, y);
     const formulaResults = [];
     const formulaLoopProtection = [];
 
@@ -176,16 +176,14 @@ export const executeFormula = function (expression, x, y) {
         // Get tokens
         tokens = expression.match(/([A-Z]+[0-9]+)/g);
 
-        // Direct self-reference protection
-        const isFooterCell = y >= obj.options.data.length;
-        if (!isFooterCell && tokens && tokens.indexOf(parentId) > -1) {
+        if (tokens && tokens.indexOf(parentId) > -1) {
             console.error('Self Reference detected');
             return '#ERROR';
         } else {
             // Expressions to be used in the parsing
             const formulaExpressions = {};
-
             if (tokens) {
+
                 for (let i = 0; i < tokens.length; i++) {
                     // Keep chain
                     if (!obj.formula[tokens[i]]) {
@@ -276,7 +274,6 @@ export const parseValue = function (i, j, value, cell) {
     if (('' + value).substr(0, 1) == '=' && obj.parent.config.parseFormulas != false) {
         value = executeFormula.call(obj, value, i, j);
     }
-
     // Column options
     const options = obj.options.columns && obj.options.columns[i];
     if (options && !isFormula(value)) {
@@ -775,7 +772,8 @@ export const updateFormulaChain = function (x, y, records) {
     const cellId = getColumnNameFromId([x, y]);
     if (obj.formula[cellId] && obj.formula[cellId].length > 0) {
         if (chainLoopProtection[cellId]) {
-            obj.records[y][x].element.innerHTML = '#ERROR';
+            console.log('Loop protection detected for cell', cellId);
+           // obj.records[y][x].element.innerHTML = '#ERROR';
             obj.formula[cellId] = '';
         } else {
             // Protection
@@ -784,6 +782,7 @@ export const updateFormulaChain = function (x, y, records) {
             for (let i = 0; i < obj.formula[cellId].length; i++) {
                 const cell = getIdFromColumnName(obj.formula[cellId][i], true);
                 // Validate cell reference
+                console.log('cell', cell);
                 if (!Array.isArray(cell) || cell[0] == null || cell[1] == null) {
                     continue;
                 }
@@ -806,32 +805,147 @@ export const updateFormulaChain = function (x, y, records) {
 };
 
 /**
+ * Calculate offset rules from referencesToUpdate
+ * This determines general row/column offset patterns
+ */
+const calculateOffsetRules = function (referencesToUpdate) {
+    const rules = {
+        rowOffsets: {}, // rowNumber -> offset
+        colOffsets: {}, // colNumber -> offset
+    };
+
+    const keys = Object.keys(referencesToUpdate);
+    if (keys.length === 0) return rules;
+
+    // Analyze patterns in referencesToUpdate
+    const changes = [];
+    for (let key of keys) {
+        const from = getIdFromColumnName(key, true);
+        const to = getIdFromColumnName(referencesToUpdate[key], true);
+        if (from && to && Array.isArray(from) && Array.isArray(to)) {
+            changes.push({
+                fromCol: from[0],
+                fromRow: from[1],
+                toCol: to[0],
+                toRow: to[1],
+            });
+        }
+    }
+
+    // Find row offset patterns
+    const rowChanges = {};
+    for (let change of changes) {
+        if (change.fromCol === change.toCol) {
+            // Same column, row changed
+            const rowDiff = change.toRow - change.fromRow;
+            if (!rowChanges[change.fromRow]) {
+                rowChanges[change.fromRow] = rowDiff;
+            }
+        }
+    }
+
+    // Find column offset patterns
+    const colChanges = {};
+    for (let change of changes) {
+        if (change.fromRow === change.toRow) {
+            // Same row, column changed
+            const colDiff = change.toCol - change.fromCol;
+            if (!colChanges[change.fromCol]) {
+                colChanges[change.fromCol] = colDiff;
+            }
+        }
+    }
+
+    // Determine general rules
+    // For rows: find the minimum row where changes start
+    const rowKeys = Object.keys(rowChanges)
+        .map(Number)
+        .sort((a, b) => a - b);
+    if (rowKeys.length > 0) {
+        const minRow = rowKeys[0];
+        const offset = rowChanges[minRow];
+        // Apply offset to all rows >= minRow
+        rules.rowOffsets = { minRow, offset };
+    }
+
+    // For columns: find the minimum column where changes start
+    const colKeys = Object.keys(colChanges)
+        .map(Number)
+        .sort((a, b) => a - b);
+    if (colKeys.length > 0) {
+        const minCol = colKeys[0];
+        const offset = colChanges[minCol];
+        // Apply offset to all columns >= minCol
+        rules.colOffsets = { minCol, offset };
+    }
+
+    return rules;
+};
+
+/**
+ * Apply offset rules to a cell reference
+ */
+const applyOffsetRules = function (token, offsetRules) {
+    const cellId = getIdFromColumnName(token, true);
+    if (!cellId || !Array.isArray(cellId)) return token;
+
+    let col = cellId[0];
+    let row = cellId[1];
+
+    // Apply row offset
+    if (offsetRules.rowOffsets.minRow !== undefined && row >= offsetRules.rowOffsets.minRow) {
+        row += offsetRules.rowOffsets.offset;
+    }
+
+    // Apply column offset
+    if (offsetRules.colOffsets.minCol !== undefined && col >= offsetRules.colOffsets.minCol) {
+        col += offsetRules.colOffsets.offset;
+    }
+
+    return getColumnNameFromId([col, row]);
+};
+
+/**
  * Update formula
  */
 export const updateFormula = function (formula, referencesToUpdate) {
-    console.log('updateFormula call with', "formula: ", formula, "referencesToUpdate: ", referencesToUpdate);
+    console.log('updateFormula called', typeof formula);
+    console.log('updateFormula call with', 'formula: ', formula, 'referencesToUpdate: ', referencesToUpdate);
+
+    // Calculate offset rules from referencesToUpdate
+    const offsetRules = calculateOffsetRules(referencesToUpdate);
+
+    let newFormula = formula;
+
+    // First, update individual cell references
     const testLetter = /[A-Z]/;
     const testNumber = /[0-9]/;
 
-    let newFormula = '';
+    let tempFormula = '';
     let letter = null;
     let number = null;
     let token = '';
 
-    for (let index = 0; index < formula.length; index++) {
-        if (testLetter.exec(formula[index])) {
+    for (let index = 0; index < newFormula.length; index++) {
+        if (testLetter.exec(newFormula[index])) {
             letter = 1;
             number = 0;
-            token += formula[index];
-        } else if (testNumber.exec(formula[index])) {
+            token += newFormula[index];
+        } else if (testNumber.exec(newFormula[index])) {
             number = letter ? 1 : 0;
-            token += formula[index];
+            token += newFormula[index];
         } else {
             if (letter && number) {
-                token = referencesToUpdate[token] ? referencesToUpdate[token] : token;
+                // First check if token has direct mapping
+                if (referencesToUpdate[token]) {
+                    token = referencesToUpdate[token];
+                } else {
+                    // Apply offset rules
+                    token = applyOffsetRules(token, offsetRules);
+                }
             }
-            newFormula += token;
-            newFormula += formula[index];
+            tempFormula += token;
+            tempFormula += newFormula[index];
             letter = 0;
             number = 0;
             token = '';
@@ -840,12 +954,57 @@ export const updateFormula = function (formula, referencesToUpdate) {
 
     if (token) {
         if (letter && number) {
-            token = referencesToUpdate[token] ? referencesToUpdate[token] : token;
+            if (referencesToUpdate[token]) {
+                token = referencesToUpdate[token];
+            } else {
+                token = applyOffsetRules(token, offsetRules);
+            }
         }
-        newFormula += token;
+        tempFormula += token;
     }
 
-    console.log('Old formula', formula, ' -> ' , 'newFormula', newFormula);
+    newFormula = tempFormula;
+
+    // Then, expand ranges if new rows/columns were inserted right after the range end
+    // Match ranges: $?[A-Z]+$?[0-9]+:$?[A-Z]+$?[0-9]+
+    const rangePattern = /(\$?)([A-Z]+)(\$?)([0-9]+):(\$?)([A-Z]+)(\$?)([0-9]+)/g;
+
+    newFormula = newFormula.replace(rangePattern, function (match, col1Fixed, col1, row1Fixed, row1, col2Fixed, col2, row2Fixed, row2) {
+        let newRow2 = row2;
+        let newCol2 = col2;
+
+        // Convert to 0-based indices
+        const row2Idx = parseInt(row2) - 1;
+        const col2Idx = getIdFromColumnName(col2, true)[0];
+
+        // Adjust range end if rows were inserted/deleted right after this range
+        if (offsetRules.rowOffsets.minRow !== undefined &&
+            offsetRules.rowOffsets.minRow === row2Idx + 1 &&
+            !row2Fixed) {
+            newRow2 = (parseInt(row2) + offsetRules.rowOffsets.offset).toString();
+        }
+
+        // Adjust range end if columns were inserted/deleted right after this range
+        if (offsetRules.colOffsets.minCol !== undefined &&
+            offsetRules.colOffsets.minCol === col2Idx + 1 &&
+            !col2Fixed) {
+            newCol2 = getColumnNameFromId([col2Idx + offsetRules.colOffsets.offset, 0]);
+        }
+
+        return (
+            (col1Fixed ? '$' : '') +
+            col1 +
+            (row1Fixed ? '$' : '') +
+            row1 +
+            ':' +
+            (col2Fixed ? '$' : '') +
+            newCol2 +
+            (row2Fixed ? '$' : '') +
+            newRow2
+        );
+    });
+
+    console.log('Old formula', formula, ' -> ', 'newFormula', newFormula);
     return newFormula;
 };
 
@@ -903,8 +1062,17 @@ const updateFooterFormulas = function (referencesToUpdate) {
                             }
                         }
 
-                        return (col1Fixed ? '$' : '') + col1 + (row1Fixed ? '$' : '') + newRow1 + ':' + 
-                               (col2Fixed ? '$' : '') + col2 + (row2Fixed ? '$' : '') + newRow2;
+                        return (
+                            (col1Fixed ? '$' : '') +
+                            col1 +
+                            (row1Fixed ? '$' : '') +
+                            newRow1 +
+                            ':' +
+                            (col2Fixed ? '$' : '') +
+                            col2 +
+                            (row2Fixed ? '$' : '') +
+                            newRow2
+                        );
                     });
                     if (newFormula != value) {
                         obj.options.footers[j][i] = newFormula;
@@ -921,7 +1089,8 @@ const updateFooterFormulas = function (referencesToUpdate) {
 const updateFormulas = function (referencesToUpdate) {
     const obj = this;
 
-    // Update formulas
+    // Első menet: Frissítjük az összes képletszöveget
+    const updatedCells = [];
     for (let j = 0; j < obj.options.data.length; j++) {
         for (let i = 0; i < obj.options.data[0].length; i++) {
             const value = '' + obj.options.data[j][i];
@@ -930,19 +1099,22 @@ const updateFormulas = function (referencesToUpdate) {
                 // Replace tokens
                 const newFormula = updateFormula(value, referencesToUpdate);
                 if (newFormula != value) {
+                    // Update the formula text
                     obj.options.data[j][i] = newFormula;
+                    updatedCells.push({ x: i, y: j, formula: newFormula });
                 }
             }
         }
     }
 
-    // // Update footer formulas with special handling for ranges
-    // if (obj.options.footers) {
-    //     updateFooterFormulas.call(obj, referencesToUpdate);
-    // }
+    // Update footer formulas with special handling for ranges
+    if (obj.options.footers) {
+        updateFooterFormulas.call(obj, referencesToUpdate);
+    }
 
     // Update formula chain
     const formula = [];
+
     const keys = Object.keys(obj.formula);
     for (let j = 0; j < keys.length; j++) {
         // Current key and values
@@ -963,6 +1135,13 @@ const updateFormulas = function (referencesToUpdate) {
         }
     }
     obj.formula = formula;
+
+    // Második menet: Újraértékeljük az összes frissített képletet
+    // Most már az obj.options.data tartalmazza az új képletszövegeket
+    for (let i = 0; i < updatedCells.length; i++) {
+        const cell = updatedCells[i];
+        updateCell.call(obj, cell.x, cell.y, cell.formula, true);
+    }
 };
 
 /**

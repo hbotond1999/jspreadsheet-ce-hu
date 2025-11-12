@@ -45,9 +45,7 @@ describe('Use footers', () => {
                         ['1', '2', '3'],
                         ['4', '5', '6'],
                     ],
-                    footers: [
-                        ['=SUM(B1:B2)', '=SUM(B1:B2)', '=SUM(B1:B2)'],
-                    ],
+                    footers: [['=SUM(B1:B2)', '=SUM(B1:B2)', '=SUM(B1:B2)']],
                     worksheetName: 'sheet1',
                 },
             ],
@@ -70,9 +68,7 @@ describe('Use footers', () => {
                         ['1', '2', '3'],
                         ['4', '5', '6'],
                     ],
-                    footers: [
-                        ['=SUM(A1:A2)', '=SUM(B1:B2)', '=SUM(C1:C2)'],
-                    ],
+                    footers: [['=SUM(A1:A2)', '=SUM(B1:B2)', '=SUM(C1:C2)']],
                     worksheetName: 'sheet1',
                 },
             ],
@@ -94,9 +90,7 @@ describe('Use footers', () => {
                         ['1', '2', '3'],
                         ['4', '5', '6'],
                     ],
-                    footers: [
-                        ['=SUM(C1:C2)', '=SUM(C1:C2)', '=SUM(C1:C2)'],
-                    ],
+                    footers: [['=SUM(C1:C2)', '=SUM(C1:C2)', '=SUM(C1:C2)']],
                     worksheetName: 'sheet1',
                 },
             ],
@@ -118,9 +112,7 @@ describe('Use footers', () => {
                         ['4', '5', '6'],
                         ['7', '8', '9'],
                     ],
-                    footers: [
-                        ['=SUM(A1:A3)', '=SUM(B1:B3)', '=SUM(C1:C3)'],
-                    ],
+                    footers: [['=SUM(A1:A3)', '=SUM(B1:B3)', '=SUM(C1:C3)']],
                     worksheetName: 'sheet1',
                 },
             ],
