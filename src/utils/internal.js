@@ -772,7 +772,6 @@ let chainLoopProtection = [];
 
 export const updateFormulaChain = function (x, y, records) {
     const obj = this;
-
     const cellId = getColumnNameFromId([x, y]);
     if (obj.formula[cellId] && obj.formula[cellId].length > 0) {
         if (chainLoopProtection[cellId]) {
@@ -784,15 +783,21 @@ export const updateFormulaChain = function (x, y, records) {
 
             for (let i = 0; i < obj.formula[cellId].length; i++) {
                 const cell = getIdFromColumnName(obj.formula[cellId][i], true);
-                // Update cell
-                const value = '' + obj.options.data[cell[1]][cell[0]];
-                if (value.substr(0, 1) == '=') {
-                    records.push(updateCell.call(obj, cell[0], cell[1], value, true));
-                } else {
-                    // No longer a formula, remove from the chain
-                    Object.keys(obj.formula)[i] = null;
+                // Validate cell reference
+                if (!Array.isArray(cell) || cell[0] == null || cell[1] == null) {
+                    continue;
                 }
-                updateFormulaChain.call(obj, cell[0], cell[1], records);
+                // Update cell
+                if (obj.options.data[cell[1]] && obj.options.data[cell[1]][cell[0]] != null) {
+                    const value = '' + obj.options.data[cell[1]][cell[0]];
+                    if (value.substr(0, 1) == '=') {
+                        records.push(updateCell.call(obj, cell[0], cell[1], value, true));
+                    } else {
+                        // No longer a formula, remove from the chain
+                        Object.keys(obj.formula)[i] = null;
+                    }
+                    updateFormulaChain.call(obj, cell[0], cell[1], records);
+                }
             }
         }
     }
@@ -804,6 +809,7 @@ export const updateFormulaChain = function (x, y, records) {
  * Update formula
  */
 export const updateFormula = function (formula, referencesToUpdate) {
+    console.log('updateFormula call with', "formula: ", formula, "referencesToUpdate: ", referencesToUpdate);
     const testLetter = /[A-Z]/;
     const testNumber = /[0-9]/;
 
@@ -839,7 +845,74 @@ export const updateFormula = function (formula, referencesToUpdate) {
         newFormula += token;
     }
 
+    console.log('Old formula', formula, ' -> ' , 'newFormula', newFormula);
     return newFormula;
+};
+
+/**
+ * Update footer formulas with special handling for ranges and row/column insertions/deletions
+ * "Bután" eljárunk: mindig frissítjük a footer képleteket sor/oszlop beszúrás/eltávolítás után
+ */
+const updateFooterFormulas = function (referencesToUpdate) {
+    console.log('updateFooterFormulas', referencesToUpdate);
+    const obj = this;
+    const lastDataRow = obj.options.data.length - 1;
+
+    for (let j = 0; j < obj.options.footers.length; j++) {
+        if (obj.options.footers[j]) {
+            for (let i = 0; i < obj.options.footers[j].length; i++) {
+                const value = '' + obj.options.footers[j][i];
+                // Is formula
+                if (value.substr(0, 1) == '=') {
+                    let newFormula = value;
+
+                    // First, update column references using affectedTokens
+                    newFormula = updateFormula(newFormula, referencesToUpdate);
+
+                    // Then, update row references in ranges: if range ends at last data row, extend it
+                    // Match ranges: $?[A-Z]+$?[0-9]+:$?[A-Z]+$?[0-9]+
+                    const rangePattern = /(\$?)([A-Z]+)(\$?)([0-9]+):(\$?)([A-Z]+)(\$?)([0-9]+)/g;
+
+                    newFormula = newFormula.replace(rangePattern, function (match, col1Fixed, col1, row1Fixed, row1, col2Fixed, col2, row2Fixed, row2) {
+                        // Get row indices (convert from 1-based to 0-based)
+                        const row1Idx = parseInt(row1) - 1;
+                        const row2Idx = parseInt(row2) - 1;
+
+                        // Update row references if not fixed
+                        let newRow1 = row1;
+                        let newRow2 = row2;
+
+                        // Check if row1 was affected by the update
+                        if (!row1Fixed) {
+                            const row1Ref = col1 + row1;
+                            if (referencesToUpdate[row1Ref]) {
+                                newRow1 = referencesToUpdate[row1Ref].replace(/[A-Z]+/, '');
+                            }
+                        }
+
+                        // Check if row2 was affected by the update
+                        if (!row2Fixed) {
+                            const row2Ref = col2 + row2;
+                            if (referencesToUpdate[row2Ref]) {
+                                // If the range end row reference was affected, update it
+                                newRow2 = referencesToUpdate[row2Ref].replace(/[A-Z]+/, '');
+                            } else {
+                                // "Bután" eljárunk: mindig frissítjük a tartomány végindexét az utolsó sorra
+                                // Ez kezeli mind a beszúrásokat (növeli), mind az eltávolításokat (csökkenti)
+                                newRow2 = (lastDataRow + 1).toString();
+                            }
+                        }
+
+                        return (col1Fixed ? '$' : '') + col1 + (row1Fixed ? '$' : '') + newRow1 + ':' + 
+                               (col2Fixed ? '$' : '') + col2 + (row2Fixed ? '$' : '') + newRow2;
+                    });
+                    if (newFormula != value) {
+                        obj.options.footers[j][i] = newFormula;
+                    }
+                }
+            }
+        }
+    }
 };
 
 /**
@@ -862,6 +935,11 @@ const updateFormulas = function (referencesToUpdate) {
             }
         }
     }
+
+    // // Update footer formulas with special handling for ranges
+    // if (obj.options.footers) {
+    //     updateFooterFormulas.call(obj, referencesToUpdate);
+    // }
 
     // Update formula chain
     const formula = [];
