@@ -524,6 +524,11 @@ export const buildWorksheet = async function () {
             }
         });
     }
+
+    // Initialize column reference updates for SUMMARIZECOL formula
+    if (typeof libraryBase.jspreadsheet.setupColumnReferenceUpdates === 'function') {
+        libraryBase.jspreadsheet.setupColumnReferenceUpdates(obj);
+    }
 };
 
 export const createWorksheetObj = function (options) {

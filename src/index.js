@@ -7,8 +7,7 @@ import { destroyEvents } from './utils/events.js';
 import * as helpers from './utils/helpers.js';
 import dispatch from './utils/dispatch.js';
 import version from './utils/version.js';
-import * as formulas from './utils/formulas/index.js'
-
+import * as formulas from './utils/formulas/index.js';
 
 libraryBase.jspreadsheet = function (el, options) {
     try {
@@ -92,5 +91,8 @@ libraryBase.jspreadsheet.version = function () {
 Object.entries(helpers).forEach(([key, value]) => {
     libraryBase.jspreadsheet.helpers[key] = value;
 });
+
+// Export setupColumnReferenceUpdates for use in buildWorksheet
+libraryBase.jspreadsheet.setupColumnReferenceUpdates = formulas.setupColumnReferenceUpdates;
 
 export default libraryBase.jspreadsheet;

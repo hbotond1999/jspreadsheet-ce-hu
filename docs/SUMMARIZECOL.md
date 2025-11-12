@@ -64,11 +64,29 @@ A SUMMARIZECOL formula:
 ## Dinamikus frissítés
 
 A formula automatikusan frissül, amikor:
-- Új sorokat szúrsz be
-- Adatokat módosítasz
-- Sorokat törölsz
+- **Új sorokat szúrsz be** - Az összeg automatikusan tartalmazza az új sorokat
+- **Adatokat módosítasz** - Az összeg újraszámolódik
+- **Sorokat törölsz** - Az összeg frissül
+- **Oszlopokat szúrsz be** - Az oszlop hivatkozások automatikusan frissülnek
+- **Oszlopokat törölsz** - Az oszlop hivatkozások automatikusan frissülnek
 
-Ez azért van, mert a formula mindig az `instance.options.data` aktuális tartalmát használja.
+### Oszlop referencia frissítés
+
+Amikor oszlopot szúrsz be vagy törölsz, a SUMMARIZECOL formula hivatkozásai automatikusan frissülnek:
+
+**Példa - Oszlop beszúrás:**
+- Eredeti: `=SUMMARIZECOL(2)` (C oszlop)
+- Ha beszúrsz egy oszlopot a C elé → `=SUMMARIZECOL(3)` (az új D oszlop)
+- Ha beszúrsz egy oszlopot a C után → `=SUMMARIZECOL(2)` (változatlan)
+
+**Példa - Oszlop törlés:**
+- Eredeti: `=SUMMARIZECOL(3)` (D oszlop)
+- Ha törlöd a B oszlopot → `=SUMMARIZECOL(2)` (most C oszlop)
+- Ha törlöd a D oszlopot → `#REF!` (hibás hivatkozás)
+
+Ez azért van, mert:
+1. A formula mindig az `instance.options.data` aktuális tartalmát használja
+2. Az oszlop referencia frissítő automatikusan figyelii az `oninsertcolumn` és `ondeletecolumn` eseményeket
 
 ## Megjegyzések
 

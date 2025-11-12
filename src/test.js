@@ -19,11 +19,7 @@ window.instance = jspreadsheet(document.getElementById('root'), {
             minDimensions: [4, 10],
             columnDrag: true,
             footers: [['Total', '=SUMMARIZECOL(1)', '=SUMMARIZECOL(2)', '=SUMMARIZECOL(3)']],
-            columns: [
-                {    type: "hidden",
-                    width: '200px',
-                },
-            ],
+            columns: [{ type: 'hidden', width: '200px' }],
         },
     ],
 });

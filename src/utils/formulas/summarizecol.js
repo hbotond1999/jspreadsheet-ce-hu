@@ -1,18 +1,18 @@
-
 // Define SUMMARIZECOL custom formula
 import libraryBase from '../libraryBase';
 
 const SUMMARIZECOL = function (columnId, x, y, instance) {
     // The formula engine passes: columnId (user param), x (col), y (row), instance (worksheet)
     // If instance is not passed as 4th argument, try to get it from libraryBase
-    console.log('SUMMARIZECOL: columnId:', columnId, 'x:', x, 'y:', y, 'instance:', instance);
+    console.log('SUMMARIZECOL called with:', { columnId, x, y, instance, current: libraryBase.jspreadsheet.current });
+    
     if (!instance || !instance.options) {
         instance = libraryBase.jspreadsheet.current;
     }
 
     // Validate instance
     if (!instance || !instance.options || !instance.options.data) {
-        console.error('SUMMARIZECOL: No valid instance found');
+        console.error('SUMMARIZECOL: No valid instance found', { instance });
         return '#ERROR';
     }
 
@@ -65,6 +65,5 @@ const SUMMARIZECOL = function (columnId, x, y, instance) {
 
     return total;
 };
-
 
 export default SUMMARIZECOL;
